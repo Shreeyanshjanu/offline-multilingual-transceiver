@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Log
+import com.sih.voicebridge.bridge.NativeEventHub
 import org.json.JSONObject
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -38,8 +39,8 @@ class VoicePipelineOrchestrator(
     private val vadProcessor = VadProcessor()
     private val sttEngine = SttEngine(appContext, ::emitStatus)
     private val sentenceManager = SentenceManager()
-    private val emergencyAudioController = EmergencyAudioController(appContext)
-    private val ttsEngine = TtsEngine(appContext, emitEvent, ::emitStatus)
+    private val speechOutput = SharedSpeechOutput.acquire(appContext)
+    private val ttsEngine = speechOutput.engine
     private val resourceMonitor = ResourceMonitor(appContext, emitEvent)
     private val pipelineExecutor = Executors.newSingleThreadExecutor()
     private val frameQueue = BoundedAudioFrameQueue(pipelineExecutor)
@@ -50,9 +51,18 @@ class VoicePipelineOrchestrator(
     private var languageCode = "en"
     private var mode = "walkie_talkie"
     private var pendingLanguage: String? = null
+    private val playbackObserver: (Map<String, Any?>) -> Unit = { event ->
+        when (event["type"]) {
+            "tts_started" -> resourceMonitor.setPhase(ResourcePhase.TTS)
+            "playback_finished" -> resourceMonitor.setPhase(ResourcePhase.IDLE)
+        }
+    }
+
+    init { NativeEventHub.add(playbackObserver) }
 
     fun initialize(languageCode: String) {
         if (disposed.get()) return
+        emitModelLoading(languageCode)
         pipelineExecutor.execute {
             if (disposed.get()) return@execute
             try {
@@ -62,15 +72,51 @@ class VoicePipelineOrchestrator(
                 emitStatus(if (sttEngine.recognitionAvailable) "Voice pipelines ready for $languageCode"
                     else "STT unavailable; typed communication and TTS remain available")
             } catch (error: Throwable) {
+                emitModelReady(languageCode, error.message)
                 emitError("Pipeline initialization failed: ${error.message}")
             }
         }
+    }
+
+    private fun emitModelLoading(code: String) {
+        emitEvent(mapOf(
+            "type" to "model_loading",
+            "languageCode" to code,
+            // Loading is emitted from the platform thread; resolve file-backed
+            // model metadata only in emitModelReady on the pipeline executor.
+            "sttModel" to "Offline STT (${code.uppercase()})",
+            "ttsModel" to "Speech synthesis (${code.uppercase()})",
+            "isLoading" to true,
+            "estimatedSeconds" to 2,
+            "message" to "Loading ${code.uppercase()} speech model... Please wait 1-2s",
+        ))
+    }
+
+    private fun emitModelReady(code: String, errorMessage: String? = null) {
+        val sttModel = if (sttEngine.recognitionAvailable && errorMessage == null) {
+            sttEngine.activeModelName(code)
+        } else {
+            "Offline STT Unavailable"
+        }
+        val ttsModel = ttsEngine.activeEngineName(code)
+
+        emitEvent(mapOf(
+            "type" to "model_ready",
+            "languageCode" to code,
+            "sttModel" to sttModel,
+            "ttsModel" to ttsModel,
+            "sttAvailable" to (sttEngine.recognitionAvailable && errorMessage == null),
+            "isLoading" to false,
+            "message" to if (errorMessage == null) "Speech models active for ${code.uppercase()}"
+                else "Speech model loading failed: $errorMessage",
+        ))
     }
 
     private fun configureLanguage(code: String) {
         languageCode = code
         sttEngine.setLanguage(code)
         resourceMonitor.updateModelSizes(sttEngine.currentModelSizeMb(), ttsEngine.currentModelSizeMb(code))
+        emitModelReady(code)
         emitEvent(mapOf(
             "type" to "stt_ready", "available" to sttEngine.recognitionAvailable,
             "fallback" to !sttEngine.recognitionAvailable, "languageCode" to code,
@@ -81,6 +127,7 @@ class VoicePipelineOrchestrator(
 
     fun setLanguage(languageCode: String) {
         if (disposed.get()) return
+        emitModelLoading(languageCode)
         pipelineExecutor.execute {
             if (disposed.get()) return@execute
             if (captureRequest.get() != null) {
@@ -88,7 +135,10 @@ class VoicePipelineOrchestrator(
                 emitStatus("Language change queued until recording finishes")
             } else {
                 runCatching { configureLanguage(languageCode) }
-                    .onFailure { emitError("Language switch failed: ${it.message}") }
+                    .onFailure {
+                        emitModelReady(languageCode, it.message)
+                        emitError("Language switch failed: ${it.message}")
+                    }
             }
         }
     }
@@ -287,7 +337,10 @@ class VoicePipelineOrchestrator(
                 pendingLanguage = null
                 if (requestedLanguage != null) {
                     runCatching { configureLanguage(requestedLanguage) }
-                        .onFailure { emitError("Language switch failed: ${it.message}") }
+                        .onFailure {
+                            emitModelReady(requestedLanguage, it.message)
+                            emitError("Language switch failed: ${it.message}")
+                        }
                 }
             }
         }
@@ -305,7 +358,8 @@ class VoicePipelineOrchestrator(
         if (resourcesClosed) return
         resourcesClosed = true
         runCatching { sttEngine.shutdown() }
-        ttsEngine.shutdown()
+        NativeEventHub.remove(playbackObserver)
+        speechOutput.release()
         resourceMonitor.stop()
         audioCaptureManager.shutdown()
         pipelineExecutor.shutdown()
@@ -313,20 +367,15 @@ class VoicePipelineOrchestrator(
 
     fun speakText(text: String, languageCode: String, emergency: Boolean, messageId: String?) {
         val resolvedMessageId = messageId ?: "tts-${System.currentTimeMillis()}"
-        if (emergency) emergencyAudioController.prepareMaxVolume()
         resourceMonitor.setPhase(ResourcePhase.TTS)
-        ttsEngine.speak(
-            text = text, languageCode = languageCode, emergency = emergency, messageId = resolvedMessageId,
-            onPlaybackFinished = {
-                if (emergency) emergencyAudioController.restoreVolume()
-                resourceMonitor.setPhase(ResourcePhase.IDLE)
-            },
-        )
+        speechOutput.speak(text, languageCode, emergency, resolvedMessageId) {
+            resourceMonitor.setPhase(ResourcePhase.IDLE)
+        }
     }
 
-    fun setEmergencyOverride(enabled: Boolean) {
-        if (enabled) emergencyAudioController.prepareMaxVolume() else emergencyAudioController.restoreVolume()
-    }
+    fun setEmergencyOverride(enabled: Boolean) = speechOutput.setOverride(enabled)
+
+    fun setEmergencyVolumeBoost(enabled: Boolean) = speechOutput.setBoost(enabled)
 
     private fun hasRecordPermission(): Boolean =
         appContext.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED

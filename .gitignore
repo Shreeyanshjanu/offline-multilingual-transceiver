@@ -13,3 +13,12 @@ coverage/
 
 .gradle-home/
 .tmp-appdata/
+
+# Local credentials
+.env
+.env.*
+!.env.example
+
+# Local release exports and test captures
+/release-models/
+/flutter_*.png
