@@ -4,11 +4,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sih_voice_bridge/app/models/benchmark_models.dart';
 import 'package:sih_voice_bridge/app/models/connection_config.dart';
+import 'package:sih_voice_bridge/app/models/language_option.dart';
 import 'package:sih_voice_bridge/app/models/speech_message.dart';
+import 'package:sih_voice_bridge/app/models/user_profile.dart';
 import 'package:sih_voice_bridge/app/services/benchmark_history_storage_service.dart';
 import 'package:sih_voice_bridge/app/services/benchmark_tracker.dart';
 import 'package:sih_voice_bridge/app/services/native_bridge_service.dart';
 import 'package:sih_voice_bridge/app/services/tcp_message_service.dart';
+import 'package:sih_voice_bridge/app/services/user_profile_storage_service.dart';
 import 'package:sih_voice_bridge/app/state/app_controller.dart';
 
 class _MemoryHistory extends BenchmarkHistoryStorageService {
@@ -38,6 +41,7 @@ class _FakeNativeBridge extends NativeBridgeService {
   String? activeId;
   int starts = 0;
   int stops = 0;
+  final List<String> languages = [];
   bool sttAvailable = true;
 
   @override
@@ -51,6 +55,12 @@ class _FakeNativeBridge extends NativeBridgeService {
 
   @override
   Future<String?> getAppDataDirectoryPath() async => null;
+
+  @override
+  Future<void> setLanguage(String languageCode) async {
+    languages.add(languageCode);
+    emit({'type': 'stt_ready', 'available': true});
+  }
 
   @override
   Future<bool> startListening(
@@ -101,11 +111,28 @@ class _FakeNativeBridge extends NativeBridgeService {
   }
 }
 
+class _MemoryUserProfileStorage extends UserProfileStorageService {
+  @override
+  Future<UserProfile?> load(
+          {required Future<String?> Function() appDataPathProvider}) async =>
+      null;
+
+  @override
+  Future<void> save(
+      {required UserProfile profile,
+      required Future<String?> Function() appDataPathProvider}) async {}
+
+  @override
+  Future<void> clear(
+      {required Future<String?> Function() appDataPathProvider}) async {}
+}
+
 AppController _controller(_FakeNativeBridge bridge, {TcpMessageService? tcp}) =>
     AppController(
       nativeBridgeService: bridge,
       tcpMessageService: tcp,
       benchmarkHistoryStorageService: _MemoryHistory(),
+      userProfileStorageService: _MemoryUserProfileStorage(),
     );
 
 Future<void> _waitFor(bool Function() condition) async {
@@ -120,6 +147,26 @@ Future<void> _waitFor(bool Function() condition) async {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('language selection exposes and accepts only installed models',
+      () async {
+    final bridge = _FakeNativeBridge();
+    final controller = AppController(
+      nativeBridgeService: bridge,
+      benchmarkHistoryStorageService: _MemoryHistory(),
+      availableLanguageCodes: ['en', 'hi'],
+    );
+    await controller.initialize(initialLanguageCode: 'hi');
+    expect(controller.availableLanguages.map((language) => language.code),
+        ['en', 'hi']);
+    await controller.setLanguage(
+        kLanguageOptions.firstWhere((language) => language.code == 'gu'));
+    expect(controller.selectedLanguage.code, 'hi');
+    expect(bridge.languages, isEmpty);
+    await controller.setLanguage(kLanguageOptions.first);
+    expect(bridge.languages, ['en']);
+    controller.dispose();
+  });
 
   test('initialization preserves an unavailable backend status', () async {
     final _FakeNativeBridge bridge = _FakeNativeBridge()..sttAvailable = false;
@@ -305,8 +352,11 @@ void main() {
       await sender.sendEmergencyPreset();
       delivered++;
       await _waitFor(() => receiverBridge.playback.length == delivered);
-      expect(receiverBridge.playback.last,
-          (text: 'Medical assistance required', emergency: true));
+      expect(receiverBridge.playback.last, (
+        text: 'Medical assistance required for Operator-1 (Field Operator)',
+        emergency: true
+      ));
+      expect(receiver.history.first.senderCallsign, 'Operator-1');
       await receiver.sendTypedMessage('reply');
       await _waitFor(() => senderBridge.playback.isNotEmpty);
       expect(senderBridge.playback.last.text, 'reply');

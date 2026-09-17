@@ -1,54 +1,115 @@
 {
+  "version": "0.1.0",
   "languages": {
     "en": {
       "type": "nemo_ctc",
-      "model": "assets/models/stt/en/model.int8.onnx",
-      "tokens": "assets/models/stt/en/tokens.txt"
+      "modelFile": "stt-en-model.int8.onnx",
+      "modelUrl": "https://github.com/Shreeyanshjanu/offline-multilingual-transceiver/releases/download/v0.1.0-models/stt-en-model.int8.onnx",
+      "tokensFile": "stt-en-tokens.txt",
+      "tokensUrl": "https://github.com/Shreeyanshjanu/offline-multilingual-transceiver/releases/download/v0.1.0-models/stt-en-tokens.txt",
+      "modelSizeBytes": 131652171,
+      "modelSha256": "9177a9146cf32ee0cc8152276ef95116f312018d316be37ccf57f7efea81fc1a",
+      "tokensSizeBytes": 9953,
+      "tokensSha256": "450e56bd2f036fe5b6aa821865838cc5aa9d8b0106134ce9a9ba0664abe6cd10"
     },
     "hi": {
       "type": "nemo_ctc",
-      "model": "assets/models/stt/hi/model.int8.onnx",
-      "tokens": "assets/models/stt/indic-tokens.txt"
+      "modelFile": "stt-hi-model.int8.onnx",
+      "modelUrl": "https://github.com/Shreeyanshjanu/offline-multilingual-transceiver/releases/download/v0.1.0-models/stt-hi-model.int8.onnx",
+      "tokensFile": "stt-indic-tokens.txt",
+      "tokensUrl": "https://github.com/Shreeyanshjanu/offline-multilingual-transceiver/releases/download/v0.1.0-models/stt-indic-tokens.txt",
+      "modelSizeBytes": 197595593,
+      "modelSha256": "915c71e04dd7e5378a4057fdebb252b3a587188e4e99db6d7ce0909ad5ad05fa",
+      "tokensSizeBytes": 67605,
+      "tokensSha256": "ee60967630213f31951817ac8b402b92ec18cce80718a24a49b388e56672dfb2"
     },
     "gu": {
       "type": "nemo_ctc",
-      "model": "assets/models/stt/gu/model.int8.onnx",
-      "tokens": "assets/models/stt/indic-tokens.txt"
+      "modelFile": "stt-gu-model.int8.onnx",
+      "modelUrl": "https://github.com/Shreeyanshjanu/offline-multilingual-transceiver/releases/download/v0.1.0-models/stt-gu-model.int8.onnx",
+      "tokensFile": "stt-indic-tokens.txt",
+      "tokensUrl": "https://github.com/Shreeyanshjanu/offline-multilingual-transceiver/releases/download/v0.1.0-models/stt-indic-tokens.txt",
+      "modelSizeBytes": 197595461,
+      "modelSha256": "822ed7f0b809bbd479275bf91c913d05564b88c0d082bbcba2f37999b88cb598",
+      "tokensSizeBytes": 67605,
+      "tokensSha256": "ee60967630213f31951817ac8b402b92ec18cce80718a24a49b388e56672dfb2"
     },
     "mr": {
       "type": "nemo_ctc",
-      "model": "assets/models/stt/mr/model.int8.onnx",
-      "tokens": "assets/models/stt/indic-tokens.txt"
+      "modelFile": "stt-mr-model.int8.onnx",
+      "modelUrl": "https://github.com/Shreeyanshjanu/offline-multilingual-transceiver/releases/download/v0.1.0-models/stt-mr-model.int8.onnx",
+      "tokensFile": "stt-indic-tokens.txt",
+      "tokensUrl": "https://github.com/Shreeyanshjanu/offline-multilingual-transceiver/releases/download/v0.1.0-models/stt-indic-tokens.txt",
+      "modelSizeBytes": 197595593,
+      "modelSha256": "1ea81e55c4b9b12624c9d02a5b9c1b6f7c871c78a55ff52d333f81cb5136eaf2",
+      "tokensSizeBytes": 67605,
+      "tokensSha256": "ee60967630213f31951817ac8b402b92ec18cce80718a24a49b388e56672dfb2"
     },
     "kn": {
       "type": "nemo_ctc",
-      "model": "assets/models/stt/kn/model.int8.onnx",
-      "tokens": "assets/models/stt/indic-tokens.txt"
+      "modelFile": "stt-kn-model.int8.onnx",
+      "modelUrl": "https://github.com/Shreeyanshjanu/offline-multilingual-transceiver/releases/download/v0.1.0-models/stt-kn-model.int8.onnx",
+      "tokensFile": "stt-indic-tokens.txt",
+      "tokensUrl": "https://github.com/Shreeyanshjanu/offline-multilingual-transceiver/releases/download/v0.1.0-models/stt-indic-tokens.txt",
+      "modelSizeBytes": 197595728,
+      "modelSha256": "b226ce7e4ea35b0dd66991964bd00e011b6b14b0fcdf4f7d1cccd777781c94dc",
+      "tokensSizeBytes": 67605,
+      "tokensSha256": "ee60967630213f31951817ac8b402b92ec18cce80718a24a49b388e56672dfb2"
     },
     "ml": {
       "type": "nemo_ctc",
-      "model": "assets/models/stt/ml/model.int8.onnx",
-      "tokens": "assets/models/stt/indic-tokens.txt"
+      "modelFile": "stt-ml-model.int8.onnx",
+      "modelUrl": "https://github.com/Shreeyanshjanu/offline-multilingual-transceiver/releases/download/v0.1.0-models/stt-ml-model.int8.onnx",
+      "tokensFile": "stt-indic-tokens.txt",
+      "tokensUrl": "https://github.com/Shreeyanshjanu/offline-multilingual-transceiver/releases/download/v0.1.0-models/stt-indic-tokens.txt",
+      "modelSizeBytes": 197595555,
+      "modelSha256": "dcbdfa9f773db910508b40b703cb76c5974e8d4c6f123ea81265b40853c3f0c2",
+      "tokensSizeBytes": 67605,
+      "tokensSha256": "ee60967630213f31951817ac8b402b92ec18cce80718a24a49b388e56672dfb2"
     },
     "ta": {
       "type": "nemo_ctc",
-      "model": "assets/models/stt/ta/model.int8.onnx",
-      "tokens": "assets/models/stt/indic-tokens.txt"
+      "modelFile": "stt-ta-model.int8.onnx",
+      "modelUrl": "https://github.com/Shreeyanshjanu/offline-multilingual-transceiver/releases/download/v0.1.0-models/stt-ta-model.int8.onnx",
+      "tokensFile": "stt-indic-tokens.txt",
+      "tokensUrl": "https://github.com/Shreeyanshjanu/offline-multilingual-transceiver/releases/download/v0.1.0-models/stt-indic-tokens.txt",
+      "modelSizeBytes": 197595513,
+      "modelSha256": "abb7b59d706b8d27ba3fb5e5e3db7671c9e1a09bf7bc6122de507c60030e65fb",
+      "tokensSizeBytes": 67605,
+      "tokensSha256": "ee60967630213f31951817ac8b402b92ec18cce80718a24a49b388e56672dfb2"
     },
     "te": {
       "type": "nemo_ctc",
-      "model": "assets/models/stt/te/model.int8.onnx",
-      "tokens": "assets/models/stt/indic-tokens.txt"
+      "modelFile": "stt-te-model.int8.onnx",
+      "modelUrl": "https://github.com/Shreeyanshjanu/offline-multilingual-transceiver/releases/download/v0.1.0-models/stt-te-model.int8.onnx",
+      "tokensFile": "stt-indic-tokens.txt",
+      "tokensUrl": "https://github.com/Shreeyanshjanu/offline-multilingual-transceiver/releases/download/v0.1.0-models/stt-indic-tokens.txt",
+      "modelSizeBytes": 197595693,
+      "modelSha256": "710f176e33080f1be84b4f38bb5f33be3f522dcf4f191bf4d5cc89f7a85924f3",
+      "tokensSizeBytes": 67605,
+      "tokensSha256": "ee60967630213f31951817ac8b402b92ec18cce80718a24a49b388e56672dfb2"
     },
     "bn": {
       "type": "nemo_ctc",
-      "model": "assets/models/stt/bn/model.int8.onnx",
-      "tokens": "assets/models/stt/indic-tokens.txt"
+      "modelFile": "stt-bn-model.int8.onnx",
+      "modelUrl": "https://github.com/Shreeyanshjanu/offline-multilingual-transceiver/releases/download/v0.1.0-models/stt-bn-model.int8.onnx",
+      "tokensFile": "stt-indic-tokens.txt",
+      "tokensUrl": "https://github.com/Shreeyanshjanu/offline-multilingual-transceiver/releases/download/v0.1.0-models/stt-indic-tokens.txt",
+      "modelSizeBytes": 197595578,
+      "modelSha256": "e9120a534f69df065314be468bf15579f1b92a4cd8c07ad119b80b69244718a8",
+      "tokensSizeBytes": 67605,
+      "tokensSha256": "ee60967630213f31951817ac8b402b92ec18cce80718a24a49b388e56672dfb2"
     },
     "or": {
       "type": "nemo_ctc",
-      "model": "assets/models/stt/or/model.int8.onnx",
-      "tokens": "assets/models/stt/indic-tokens.txt"
+      "modelFile": "stt-or-model.int8.onnx",
+      "modelUrl": "https://github.com/Shreeyanshjanu/offline-multilingual-transceiver/releases/download/v0.1.0-models/stt-or-model.int8.onnx",
+      "tokensFile": "stt-indic-tokens.txt",
+      "tokensUrl": "https://github.com/Shreeyanshjanu/offline-multilingual-transceiver/releases/download/v0.1.0-models/stt-indic-tokens.txt",
+      "modelSizeBytes": 197584928,
+      "modelSha256": "31730e06bd186bca5c3214003c2a0b5eeb3234d079b5b81aa72547adbe1c9be7",
+      "tokensSizeBytes": 67605,
+      "tokensSha256": "ee60967630213f31951817ac8b402b92ec18cce80718a24a49b388e56672dfb2"
     }
   }
 }

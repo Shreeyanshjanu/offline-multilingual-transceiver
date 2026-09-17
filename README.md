@@ -36,19 +36,45 @@ Typed messages can also be sent and converted to speech.
 ```
 SIH/
 ├── android/
-│   └── app/src/main/kotlin/
+│   └── app/src/main/kotlin/com/sih/voicebridge/
+│       ├── bridge/          # Flutter channel dispatch
+│       ├── connection/      # Optional native background TCP service
+│       ├── download/        # Persistent Android model downloads
+│       ├── location/        # GPS integration
+│       ├── network/         # Wi-Fi gateway discovery
+│       └── pipeline/        # Audio capture, STT, TTS, and orchestration
 ├── assets/
-│   └── models/
-│       ├── stt/
-│       └── tts/
+│   └── models/              # STT/TTS manifests and release source assets
 ├── lib/
-│   ├── models/
-│   ├── screens/
-│   ├── services/
-│   └── widgets/
+│   ├── main.dart
+│   └── app/
+│       ├── app.dart         # Setup and app initialization
+│       ├── models/
+│       ├── services/        # Downloads, storage, TCP, and native bridge
+│       │   └── native_bridge/
+│       ├── state/           # Controller and private event/message/benchmark helpers
+│       ├── theme/
+│       └── ui/
+│           ├── app_shell.dart
+│           ├── screens/    # Language setup, Talk, and Messages
+│           └── widgets/
+│               ├── talk/
+│               ├── messages/
+│               ├── profile/
+│               └── settings/
+├── test/
+├── docs/
 ├── pubspec.yaml
 └── README.md
 ```
+
+The screens compose focused widgets. `AppController` owns shared application
+state; its private library parts handle native events, message dispatch, and
+benchmark recording. `NativeBridgeService` retains its public API while device
+and download channel methods live under `services/native_bridge/`.
+
+See the [UI map and user flows](docs/UI_MAP_AND_USER_FLOWS.md) for the active
+screens and their responsibilities.
 
 ## Requirements
 
@@ -92,8 +118,8 @@ flutter devices
 ## Clone the Repository
 
 ```bash
-git clone https://github.com/ShreeyanshJanu/SIH-21673.git
-cd SIH-21673
+git clone https://github.com/Shreeyanshjanu/offline-multilingual-transceiver.git
+cd offline-multilingual-transceiver
 ```
 
 Install Flutter dependencies:
@@ -150,6 +176,18 @@ One device runs as the server/relay and other devices connect to it.
 
 Messages are transmitted as text rather than raw voice audio. The receiving device performs TTS locally.
 
+### Background Connection
+
+In Talk, open Radio diagnostics and settings and enable **Keep Connection Active
+in Background**, then start or join a mesh. The native Android foreground service
+keeps the connection active when the app is minimized or removed from Recents.
+Incoming messages are stored locally and use native TTS. Disconnect in the app
+or notification stops the service and cancels reconnect attempts.
+
+See the [background connection guide](docs/background-connection.md) for setup,
+lifecycle behavior, build commands, and Android limitations, and the
+[validation results](docs/background-validation.md) for tested scenarios.
+
 ## Working on the UI
 
 Most UI development happens inside:
@@ -161,8 +199,9 @@ lib/
 Start by exploring:
 
 ```
-lib/screens/
-lib/widgets/
+lib/app/ui/screens/
+lib/app/ui/widgets/
+lib/app/theme/
 ```
 
 UI contributors can work on:
@@ -245,13 +284,20 @@ Speech recognition code is located under:
 android/app/src/main/kotlin/com/sih/voicebridge/pipeline/
 ```
 
-`SttEngine.kt` handles the native STT pipeline and Sherpa-ONNX integration.
+`SttEngine.kt` manages STT sessions and language changes. `SttAssetResolver.kt`
+locates installed models; `SherpaOnnxBackendFactory.kt`,
+`SherpaOnnxReflectiveBackend.kt`, and `SttReflection.kt` handle Sherpa integration.
+Shared STT interfaces live in `SttContracts.kt`.
+
+`TtsEngine.kt` chooses the speech backend. Model resolution, Android system TTS,
+and Piper/Sherpa TTS live in `TtsModelResolver.kt`, `AndroidSystemTtsBackend.kt`,
+and `PiperSherpaTtsBackend.kt`, with shared types in `TtsContracts.kt`.
 
 > Do not modify native speech-processing code for a UI-only task.
 
 ## Offline Models
 
-Speech models are stored under:
+Speech model manifests and release source assets are stored under:
 
 ```
 assets/models/
@@ -259,7 +305,11 @@ assets/models/
 
 The application is designed to process speech locally without depending on cloud speech APIs.
 
-The repository currently contains the English STT model used by the working implementation. Additional Indian-language models can be added as development continues.
+On first launch, select up to two of the ten available languages. Internet access is required to download their STT models and tokenizers. Android DownloadManager owns the current transfer while the app is backgrounded. Reopening setup restores the queue and verifies both files before enabling recognition.
+
+The APK includes model manifests only. Downloaded models keep the existing internal `files/stt_models/` paths. Model binaries retained in this repository are release assets. Android TTS availability depends on the voices installed on the device.
+
+See [setup and transport validation](docs/setup-validation.md) for automated checks and Home/resume testing.
 
 > Model files can be large. Do not add or replace large model files without checking their size and licensing first.
 
@@ -315,6 +365,12 @@ flutter analyze
 ```
 
 and:
+
+```bash
+flutter test
+```
+
+then:
 
 ```bash
 flutter build apk --debug

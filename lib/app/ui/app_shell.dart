@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import '../state/app_controller.dart';
 import '../theme/app_theme.dart';
 import 'screens/messages_screen.dart';
-import 'screens/settings_screen.dart';
 import 'screens/talk_screen.dart';
+import 'widgets/operator_profile_sheet.dart';
 import 'widgets/tactical_header.dart';
 
-/// The 3-tab cockpit shell matching the Stitch design.
+/// The 2-tab cockpit shell for Talk and Messages.
 class AppShell extends StatefulWidget {
   const AppShell({super.key, required this.controller});
 
@@ -18,8 +18,61 @@ class AppShell extends StatefulWidget {
   State<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   int _currentIndex = 0;
+  bool _hasPromptedSetup = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    widget.controller.addListener(_onControllerUpdate);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkFirstLaunchSetup();
+    });
+  }
+
+  @override
+  void didUpdateWidget(AppShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_onControllerUpdate);
+      widget.controller.addListener(_onControllerUpdate);
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    widget.controller.setMessagesVisible(false);
+    widget.controller.removeListener(_onControllerUpdate);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      widget.controller.refreshBackgroundConnection();
+    }
+  }
+
+  void _onControllerUpdate() {
+    if (widget.controller.profileSetupNeeded && !_hasPromptedSetup) {
+      _checkFirstLaunchSetup();
+    }
+  }
+
+  void _checkFirstLaunchSetup() {
+    if (_hasPromptedSetup || !mounted) return;
+    if (widget.controller.profileSetupNeeded) {
+      _hasPromptedSetup = true;
+      OperatorProfileSheet.show(
+        context,
+        widget.controller,
+        isFirstLaunch: true,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +82,6 @@ class _AppShellState extends State<AppShell> {
         final List<Widget> screens = <Widget>[
           TalkScreen(controller: widget.controller),
           MessagesScreen(controller: widget.controller),
-          SettingsScreen(controller: widget.controller),
         ];
 
         return Scaffold(
@@ -50,7 +102,10 @@ class _AppShellState extends State<AppShell> {
           ),
           bottomNavigationBar: _TacticalBottomNav(
             currentIndex: _currentIndex,
-            onSelect: (int index) => setState(() => _currentIndex = index),
+            onSelect: (int index) {
+              widget.controller.setMessagesVisible(index == 1);
+              setState(() => _currentIndex = index);
+            },
           ),
         );
       },
@@ -63,8 +118,6 @@ class _AppShellState extends State<AppShell> {
         return 'Talk';
       case 1:
         return 'Messages';
-      case 2:
-        return 'Settings';
       default:
         return '';
     }
@@ -112,13 +165,6 @@ class _TacticalBottomNav extends StatelessWidget {
                 selected: currentIndex == 1,
                 onTap: () => onSelect(1),
               ),
-              _NavItem(
-                icon: Icons.settings_outlined,
-                selectedIcon: Icons.settings,
-                label: 'Settings',
-                selected: currentIndex == 2,
-                onTap: () => onSelect(2),
-              ),
             ],
           ),
         ),
@@ -144,36 +190,41 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color color = selected ? AppColors.primary : AppColors.onSurfaceVariant;
+    final Color color =
+        selected ? AppColors.primary : AppColors.onSurfaceVariant;
 
     return Semantics(
       button: true,
       selected: selected,
       label: '$label tab',
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 72, minHeight: 48),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Icon(
-                  selected ? (selectedIcon ?? icon) : icon,
-                  size: 26,
-                  color: color,
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  label.toUpperCase(),
-                  style: AppTypography.labelCaps.copyWith(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48, minWidth: 64),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Icon(
+                    selected ? (selectedIcon ?? icon) : icon,
                     color: color,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    size: 22,
                   ),
-                ),
-              ],
+                  const SizedBox(height: 2),
+                  Text(
+                    label.toUpperCase(),
+                    style: AppTypography.labelCaps.copyWith(
+                      color: color,
+                      fontSize: 10,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
